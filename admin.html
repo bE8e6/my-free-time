@@ -89,7 +89,6 @@
   <header>
     <div>
       <h1>管理空闲时间</h1>
-      <div class="sub">点格子切换空闲（8:00–18:00，每小时一格）→ 保存后公开页自动更新（约 1 分钟）</div>
     </div>
     <div class="toolbar">
       <button id="prev" title="上一周">‹</button>
@@ -114,10 +113,6 @@
         <button class="btn ghost" id="loadBtn">从 GitHub 读取当前数据</button>
         <span class="status" id="cfgStatus"></span>
       </div>
-      <div class="note" style="margin-top:10px">
-        提示：Token 只保存在你自己的浏览器 localStorage，不会上传，公开页也拿不到它，所以别人无法修改。
-        建议用 Fine-grained Token，仅授予这个仓库的 <b>Contents: Read and write</b> 权限。
-      </div>
     </details>
   </div>
 
@@ -129,14 +124,8 @@
       <button class="btn ghost" id="revertBtn">放弃改动重载</button>
       <span class="status" id="saveStatus"></span>
     </div>
-    <div class="note" style="margin-top:8px">桌面点格子、「全天」一键整天；手机点日期选天、点每行切换该小时。</div>
   </div>
 
-  <div class="card">
-    <div class="note">
-      📌 <b>首次使用</b>：先填 owner / repo / token 并「保存设置」，再点「从 GitHub 读取当前数据」，然后点格子编辑，最后「保存到 GitHub」。
-    </div>
-  </div>
 </div>
 
 <script>
