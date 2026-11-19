@@ -2,17 +2,17 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>管理 · 我的空闲时间</title>
 <style>
   :root{
     --bg:#f6f7fb; --card:#ffffff; --ink:#1f2430; --muted:#8a93a6;
     --line:#e7eaf0; --free:#2f9e63; --free-bg:#cdeedb; --free-bd:#8fd3ad;
-    --brand:#3b6ef6; --warn:#c2410c;
+    --brand:#3b6ef6; --brand-bg:#eef3ff; --warn:#c2410c;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
-       background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+       background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
   .wrap{max-width:960px;margin:0 auto;padding:24px 16px 60px}
   header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
   h1{font-size:20px;margin:0}
@@ -20,9 +20,11 @@
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;
         box-shadow:0 6px 24px rgba(28,38,66,.05);margin-bottom:16px}
   .toolbar{display:flex;align-items:center;gap:8px}
-  .toolbar button{border:1px solid var(--line);background:#fff;border-radius:10px;height:38px;min-width:38px;padding:0 10px;cursor:pointer;font-size:15px}
+  .toolbar button{border:1px solid var(--line);background:#fff;border-radius:10px;height:38px;min-width:38px;padding:0 10px;cursor:pointer;font-size:15px;color:var(--ink)}
   .toolbar button:hover{border-color:var(--brand);color:var(--brand)}
   .range{font-size:15px;font-weight:600;text-align:center;min-width:190px}
+
+  /* 桌面网格 */
   .tt-scroll{overflow-x:auto}
   .tt{display:grid;grid-template-columns:52px repeat(7,1fr);gap:4px;min-width:700px}
   .wd{text-align:center;font-size:12px;color:var(--muted);padding:4px 0 6px;border-bottom:1px solid var(--line)}
@@ -34,6 +36,28 @@
   .slot{height:30px;border-radius:7px;background:#f0f2f7;border:1px solid #eaecf2;cursor:pointer;transition:.12s}
   .slot:hover{border-color:#c7cede}
   .slot.free{background:var(--free-bg);border-color:var(--free-bd)}
+
+  /* 移动端 */
+  .mobile{display:none}
+  .daybar{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch}
+  .daytab{flex:1 0 auto;min-width:44px;border:1px solid var(--line);background:#fff;border-radius:10px;
+          padding:7px 4px;text-align:center;font-size:11px;color:var(--muted);cursor:pointer;line-height:1.25}
+  .daytab b{display:block;font-size:16px;color:var(--ink);margin-top:2px;font-weight:600}
+  .daytab .fdot{display:block;width:6px;height:6px;border-radius:50%;background:transparent;margin:4px auto 0}
+  .daytab .fdot.on{background:var(--free)}
+  .daytab.today b{color:var(--brand)}
+  .daytab.sel{border-color:var(--brand);background:var(--brand-bg)}
+  .daytab.sel b{color:var(--brand)}
+  .mhead{display:flex;align-items:center;justify-content:space-between;margin:2px 2px 2px;font-size:13px;color:var(--muted)}
+  .mhead .allbig{border:1px solid var(--line);border-radius:8px;background:#fff;padding:6px 10px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer}
+  .mhead .allbig.on{color:var(--free);border-color:var(--free-bd);background:var(--free-bg)}
+  .hourlist{display:flex;flex-direction:column;gap:7px;margin-top:8px}
+  .hrow{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px 14px;cursor:pointer;transition:.12s;background:#fff}
+  .hrow.free{border-color:var(--free-bd);background:#f4fbf7}
+  .hlbl{font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums}
+  .htog{margin-left:auto;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:999px;background:#f0f2f7;color:var(--muted)}
+  .htog.on{background:var(--free-bg);color:var(--free)}
+
   .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
   .btn{border:0;border-radius:10px;padding:10px 16px;font-size:14px;cursor:pointer;font-weight:600}
   .btn.primary{background:var(--brand);color:#fff}
@@ -47,7 +71,17 @@
   .settings label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
   .settings input{border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:13px;font-family:inherit;color:var(--ink)}
   .settings .full{grid-column:1/-1}
-  @media(max-width:560px){.settings{grid-template-columns:1fr}.range{min-width:0;font-size:14px}}
+
+  @media (max-width:700px){
+    .desktop-wrap{display:none}
+    .mobile{display:block}
+    .settings{grid-template-columns:1fr}
+    .wrap{padding:16px 12px calc(48px + env(safe-area-inset-bottom))}
+    .range{min-width:0;font-size:14px}
+    .toolbar{width:100%;justify-content:space-between}
+    .toolbar .range{flex:1}
+    .card{padding:12px;border-radius:14px}
+  }
 </style>
 </head>
 <body>
@@ -80,17 +114,28 @@
         <button class="btn ghost" id="loadBtn">从 GitHub 读取当前数据</button>
         <span class="status" id="cfgStatus"></span>
       </div>
+      <div class="note" style="margin-top:10px">
+        提示：Token 只保存在你自己的浏览器 localStorage，不会上传，公开页也拿不到它，所以别人无法修改。
+        建议用 Fine-grained Token，仅授予这个仓库的 <b>Contents: Read and write</b> 权限。
+      </div>
     </details>
   </div>
 
   <div class="card">
-    <div class="tt-scroll"><div class="tt" id="grid"></div></div>
+    <div class="desktop-wrap"><div class="tt-scroll"><div class="tt" id="grid"></div></div></div>
+    <div class="mobile" id="mobile"></div>
     <div class="row">
       <button class="btn primary" id="saveBtn" disabled>保存到 GitHub</button>
       <button class="btn ghost" id="revertBtn">放弃改动重载</button>
       <span class="status" id="saveStatus"></span>
     </div>
-    <div class="note" style="margin-top:8px">列头上方「全天」= 一键把当天 8:00–18:00 全部标为空闲 / 全部取消。</div>
+    <div class="note" style="margin-top:8px">桌面点格子、「全天」一键整天；手机点日期选天、点每行切换该小时。</div>
+  </div>
+
+  <div class="card">
+    <div class="note">
+      📌 <b>首次使用</b>：先填 owner / repo / token 并「保存设置」，再点「从 GitHub 读取当前数据」，然后点格子编辑，最后「保存到 GitHub」。
+    </div>
   </div>
 </div>
 
@@ -101,12 +146,14 @@ const CFG_KEY = 'cal_admin_cfg_v1';
 
 let DATA = { free:{}, updated:null };
 let cursor = startOfWeek(new Date());
+let selIndex = (new Date().getDay()+6)%7;
 let dirty = false;
 
 const pad = n => String(n).padStart(2,'0');
 const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const $ = id => document.getElementById(id);
 function startOfWeek(d){ const x=new Date(d); const dow=(x.getDay()+6)%7; x.setDate(x.getDate()-dow); x.setHours(0,0,0,0); return x; }
+function daysOfWeek(){ const s=cursor; return [...Array(7)].map((_,i)=>{ const d=new Date(s); d.setDate(s.getDate()+i); return d; }); }
 
 /* ---------- 配置 ---------- */
 function loadCfg(){
@@ -160,22 +207,24 @@ async function ghSave(){
 
 /* ---------- 渲染 ---------- */
 function render(){
-  const start=cursor;
-  const days=[...Array(7)].map((_,i)=>{ const d=new Date(start); d.setDate(start.getDate()+i); return d; });
+  const days=daysOfWeek();
   const s=days[0], e=days[6], sameMonth=s.getMonth()===e.getMonth();
   $('rangeLabel').textContent=`${s.getFullYear()}年${s.getMonth()+1}月${s.getDate()}日 – ${sameMonth?'':(e.getMonth()+1)+'月'}${e.getDate()}日`;
+  buildDesktop(days);
+  buildMobile(days);
+}
 
+function buildDesktop(days){
   const grid=$('grid'); grid.innerHTML='';
   const todayKey=dateKey(new Date());
-
-  grid.appendChild(Object.assign(document.createElement('div'),{className:'corner'}));
+  grid.appendChild(document.createElement('div'));
   days.forEach(d=>{
     const key=dateKey(d);
     const el=document.createElement('div');
     el.className='wd'+(key===todayKey?' today':'');
     el.innerHTML=`周${WD[(d.getDay()+6)%7]}<b>${d.getDate()}</b>`;
-    const all=document.createElement('button');
     const free=DATA.free?.[key]||[];
+    const all=document.createElement('button');
     const allOn=free.length===HOURS.length;
     all.className='allbtn'+(allOn?' on':'');
     all.textContent=allOn?'取消全天':'全天';
@@ -187,7 +236,6 @@ function render(){
     el.appendChild(all);
     grid.appendChild(el);
   });
-
   HOURS.forEach(h=>{
     const t=document.createElement('div'); t.className='time'; t.textContent=`${h}:00`; grid.appendChild(t);
     days.forEach(d=>{
@@ -207,6 +255,54 @@ function render(){
     });
   });
 }
+
+function buildMobile(days){
+  const box=$('mobile'); box.innerHTML='';
+  const todayKey=dateKey(new Date());
+  const bar=document.createElement('div'); bar.className='daybar';
+  days.forEach((d,i)=>{
+    const key=dateKey(d); const free=DATA.free?.[key]||[];
+    const b=document.createElement('button');
+    b.className='daytab'+(key===todayKey?' today':'')+(i===selIndex?' sel':'');
+    b.innerHTML=`周${WD[(d.getDay()+6)%7]}<b>${d.getDate()}</b><i class="fdot${free.length?' on':''}"></i>`;
+    b.onclick=()=>{ selIndex=i; render(); };
+    bar.appendChild(b);
+  });
+  box.appendChild(bar);
+
+  const d=days[selIndex], key=dateKey(d);
+  if(!DATA.free[key]) DATA.free[key]=[];
+  const free=DATA.free[key];
+
+  const head=document.createElement('div'); head.className='mhead';
+  const title=document.createElement('span'); title.textContent=`${d.getMonth()+1}月${d.getDate()}日 周${WD[(d.getDay()+6)%7]}`;
+  const all=document.createElement('button');
+  const allOn=free.length===HOURS.length;
+  all.className='allbig'+(allOn?' on':'');
+  all.textContent=allOn?'取消全天':'全天';
+  all.onclick=()=>{
+    if(free.length===HOURS.length) DATA.free[key]=[];
+    else DATA.free[key]=HOURS.map(h=>String(h));
+    markDirty(); render();
+  };
+  head.appendChild(title); head.appendChild(all); box.appendChild(head);
+
+  const list=document.createElement('div'); list.className='hourlist';
+  HOURS.forEach(h=>{
+    const isFree=free.includes(String(h));
+    const row=document.createElement('div'); row.className='hrow'+(isFree?' free':'');
+    row.innerHTML=`<span class="hlbl">${h}:00 – ${h+1}:00</span>`+
+      `<span class="htog${isFree?' on':''}">${isFree?'空闲':'点我标记'}</span>`;
+    row.onclick=()=>{
+      const i=free.indexOf(String(h));
+      if(i>=0) free.splice(i,1); else free.push(String(h));
+      markDirty(); render();
+    };
+    list.appendChild(row);
+  });
+  box.appendChild(list);
+}
+
 function markDirty(){ dirty=true; $('saveBtn').disabled=false; $('saveStatus').textContent='有未保存的改动'; $('saveStatus').className='status err'; }
 
 /* ---------- 动作 ---------- */
@@ -229,7 +325,7 @@ $('revertBtn').onclick=async()=>{
 };
 $('prev').onclick=()=>{ cursor.setDate(cursor.getDate()-7); render(); };
 $('next').onclick=()=>{ cursor.setDate(cursor.getDate()+7); render(); };
-$('today').onclick=()=>{ cursor=startOfWeek(new Date()); render(); };
+$('today').onclick=()=>{ cursor=startOfWeek(new Date()); selIndex=(new Date().getDay()+6)%7; render(); };
 
 /* ---------- 初始化 ---------- */
 loadCfg(); render();
