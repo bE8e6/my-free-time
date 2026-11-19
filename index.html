@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>我的空闲时间</title>
+<style>
+  :root{
+    --bg:#f6f7fb; --card:#ffffff; --ink:#1f2430; --muted:#8a93a6;
+    --line:#e7eaf0; --free:#2f9e63; --free-bg:#cdeedb; --free-bd:#8fd3ad;
+    --brand:#3b6ef6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
+       background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:26px 16px 56px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+  h1{font-size:21px;margin:0;letter-spacing:.3px}
+  .sub{color:var(--muted);font-size:13px;margin-top:6px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;
+        box-shadow:0 6px 24px rgba(28,38,66,.05)}
+  .toolbar{display:flex;align-items:center;gap:8px}
+  .toolbar button{border:1px solid var(--line);background:#fff;border-radius:10px;height:38px;
+        min-width:38px;padding:0 10px;font-size:16px;cursor:pointer;color:var(--ink)}
+  .toolbar button:hover{border-color:var(--brand);color:var(--brand)}
+  .range{font-size:15px;font-weight:600;text-align:center;min-width:190px}
+  .tt-scroll{overflow-x:auto;margin-top:6px}
+  .tt{display:grid;grid-template-columns:52px repeat(7,1fr);gap:4px;min-width:660px}
+  .corner{ }
+  .wd{text-align:center;font-size:12px;color:var(--muted);padding:4px 0 8px;border-bottom:1px solid var(--line)}
+  .wd b{display:block;font-size:15px;color:var(--ink);margin-top:3px;font-weight:600}
+  .wd.today b{color:var(--brand)}
+  .wd.today{color:var(--brand)}
+  .time{font-size:11px;color:var(--muted);display:flex;align-items:center;justify-content:flex-end;padding-right:8px;height:30px}
+  .slot{height:30px;border-radius:7px;background:#f0f2f7;border:1px solid #eaecf2;transition:.12s}
+  .slot.free{background:var(--free-bg);border-color:var(--free-bd)}
+  .legend{display:flex;gap:18px;align-items:center;margin-top:16px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+  .legend .dot{display:inline-block;width:13px;height:13px;border-radius:4px;margin-right:6px;vertical-align:-2px}
+  .dot.on{background:var(--free-bg);border:1px solid var(--free-bd)}
+  .dot.off{background:#f0f2f7;border:1px solid #eaecf2}
+  .foot{margin-top:16px;font-size:12px;color:var(--muted);text-align:center}
+  @media(max-width:560px){.wrap{padding:18px 10px 48px}.range{min-width:0;font-size:14px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>我的空闲时间</h1>
+      <div class="sub">绿色 = 我在线、可约（8:00–18:00，每小时一格）· 仅供查看</div>
+    </div>
+    <div class="toolbar">
+      <button id="prev" title="上一周">‹</button>
+      <div class="range" id="rangeLabel">—</div>
+      <button id="next" title="下一周">›</button>
+      <button id="today" title="回到本周">今天</button>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="tt-scroll"><div class="tt" id="grid"></div></div>
+    <div class="legend">
+      <span><i class="dot on"></i>空闲</span>
+      <span><i class="dot off"></i>未标注</span>
+    </div>
+  </div>
+  <div class="foot" id="foot">加载中…</div>
+</div>
+
+<script>
+const HOURS = []; for(let h=8;h<18;h++) HOURS.push(h);
+const WD = ['一','二','三','四','五','六','日'];
+let DATA = { free:{}, updated:null };
+let cursor = startOfWeek(new Date());
+
+const pad = n => String(n).padStart(2,'0');
+const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+function startOfWeek(d){ const x=new Date(d); const dow=(x.getDay()+6)%7; x.setDate(x.getDate()-dow); x.setHours(0,0,0,0); return x; }
+
+function render(){
+  const start = cursor;
+  const days = [...Array(7)].map((_,i)=>{ const d=new Date(start); d.setDate(start.getDate()+i); return d; });
+  const s = days[0], e = days[6];
+  const sameMonth = s.getMonth()===e.getMonth();
+  document.getElementById('rangeLabel').textContent =
+    `${s.getFullYear()}年${s.getMonth()+1}月${s.getDate()}日 – ${sameMonth?'':(e.getMonth()+1)+'月'}${e.getDate()}日`;
+
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  const todayKey = dateKey(new Date());
+
+  // 表头
+  grid.appendChild(Object.assign(document.createElement('div'), {className:'corner'}));
+  days.forEach(d=>{
+    const el = document.createElement('div');
+    el.className = 'wd' + (dateKey(d)===todayKey?' today':'');
+    el.innerHTML = `周${WD[(d.getDay()+6)%7]}<b>${d.getDate()}</b>`;
+    grid.appendChild(el);
+  });
+
+  // 每个小时一行
+  HOURS.forEach(h=>{
+    const t = document.createElement('div');
+    t.className = 'time';
+    t.textContent = `${h}:00`;
+    grid.appendChild(t);
+    days.forEach(d=>{
+      const key = dateKey(d);
+      const free = DATA.free?.[key] || [];
+      const cell = document.createElement('div');
+      cell.className = 'slot' + (free.includes(String(h))?' free':'');
+      cell.title = `${key} ${h}:00–${h+1}:00`;
+      grid.appendChild(cell);
+    });
+  });
+
+  const foot = document.getElementById('foot');
+  foot.textContent = DATA.updated ? `最后更新：${new Date(DATA.updated).toLocaleString('zh-CN')}` : '暂无数据';
+}
+
+async function load(){
+  try{
+    const res = await fetch('data.json?t=' + Date.now(), {cache:'no-store'});
+    if(res.ok) DATA = await res.json();
+  }catch(e){}
+  if(!DATA.free) DATA = { free:{}, updated:null };
+  render();
+}
+
+document.getElementById('prev').onclick = ()=>{ cursor.setDate(cursor.getDate()-7); render(); };
+document.getElementById('next').onclick = ()=>{ cursor.setDate(cursor.getDate()+7); render(); };
+document.getElementById('today').onclick = ()=>{ cursor = startOfWeek(new Date()); render(); };
+load();
+</script>
+</body>
+</html>

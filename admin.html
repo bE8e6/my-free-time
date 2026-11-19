@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>管理 · 我的空闲时间</title>
+<style>
+  :root{
+    --bg:#f6f7fb; --card:#ffffff; --ink:#1f2430; --muted:#8a93a6;
+    --line:#e7eaf0; --free:#2f9e63; --free-bg:#cdeedb; --free-bd:#8fd3ad;
+    --brand:#3b6ef6; --warn:#c2410c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
+       background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:960px;margin:0 auto;padding:24px 16px 60px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+  h1{font-size:20px;margin:0}
+  .sub{color:var(--muted);font-size:12px;margin-top:5px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;
+        box-shadow:0 6px 24px rgba(28,38,66,.05);margin-bottom:16px}
+  .toolbar{display:flex;align-items:center;gap:8px}
+  .toolbar button{border:1px solid var(--line);background:#fff;border-radius:10px;height:38px;min-width:38px;padding:0 10px;cursor:pointer;font-size:15px}
+  .toolbar button:hover{border-color:var(--brand);color:var(--brand)}
+  .range{font-size:15px;font-weight:600;text-align:center;min-width:190px}
+  .tt-scroll{overflow-x:auto}
+  .tt{display:grid;grid-template-columns:52px repeat(7,1fr);gap:4px;min-width:700px}
+  .wd{text-align:center;font-size:12px;color:var(--muted);padding:4px 0 6px;border-bottom:1px solid var(--line)}
+  .wd b{display:block;font-size:15px;color:var(--ink);margin-top:2px;font-weight:600}
+  .wd.today b{color:var(--brand)}
+  .allbtn{font-size:10px;color:var(--muted);cursor:pointer;border:1px solid var(--line);border-radius:6px;padding:1px 6px;background:#fff;margin-top:4px}
+  .allbtn.on{color:var(--free);border-color:var(--free-bd);background:var(--free-bg)}
+  .time{font-size:11px;color:var(--muted);display:flex;align-items:center;justify-content:flex-end;padding-right:8px;height:30px}
+  .slot{height:30px;border-radius:7px;background:#f0f2f7;border:1px solid #eaecf2;cursor:pointer;transition:.12s}
+  .slot:hover{border-color:#c7cede}
+  .slot.free{background:var(--free-bg);border-color:var(--free-bd)}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+  .btn{border:0;border-radius:10px;padding:10px 16px;font-size:14px;cursor:pointer;font-weight:600}
+  .btn.primary{background:var(--brand);color:#fff}
+  .btn.primary:disabled{opacity:.5;cursor:not-allowed}
+  .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+  .status{font-size:13px;margin-left:4px}
+  .status.ok{color:var(--free)} .status.err{color:var(--warn)}
+  .note{font-size:12px;color:var(--muted);line-height:1.6}
+  details summary{cursor:pointer;font-weight:600;font-size:14px}
+  .settings{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}
+  .settings label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+  .settings input{border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:13px;font-family:inherit;color:var(--ink)}
+  .settings .full{grid-column:1/-1}
+  @media(max-width:560px){.settings{grid-template-columns:1fr}.range{min-width:0;font-size:14px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>管理空闲时间</h1>
+      <div class="sub">点格子切换空闲（8:00–18:00，每小时一格）→ 保存后公开页自动更新（约 1 分钟）</div>
+    </div>
+    <div class="toolbar">
+      <button id="prev" title="上一周">‹</button>
+      <div class="range" id="rangeLabel">—</div>
+      <button id="next" title="下一周">›</button>
+      <button id="today" title="回到本周">今天</button>
+    </div>
+  </header>
+
+  <div class="card">
+    <details>
+      <summary>连接设置（只需配置一次，保存在本机浏览器）</summary>
+      <div class="settings">
+        <label>GitHub 用户名 owner<input id="owner" placeholder="例如 zhangsan" /></label>
+        <label>仓库名 repo<input id="repo" placeholder="例如 my-calendar" /></label>
+        <label>分支 branch<input id="branch" placeholder="main" value="main" /></label>
+        <label>文件路径 path<input id="path" placeholder="data.json" value="data.json" /></label>
+        <label class="full">Personal Access Token（仅存本地，勾选 Contents 读写权限）<input id="token" type="password" placeholder="github_pat_..." /></label>
+      </div>
+      <div class="row">
+        <button class="btn ghost" id="saveCfg">保存设置</button>
+        <button class="btn ghost" id="loadBtn">从 GitHub 读取当前数据</button>
+        <span class="status" id="cfgStatus"></span>
+      </div>
+      <div class="note" style="margin-top:10px">
+        提示：Token 只保存在你自己的浏览器 localStorage，不会上传，公开页也拿不到它，所以别人无法修改。
+        建议用 Fine-grained Token，仅授予这个仓库的 <b>Contents: Read and write</b> 权限。
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <div class="tt-scroll"><div class="tt" id="grid"></div></div>
+    <div class="row">
+      <button class="btn primary" id="saveBtn" disabled>保存到 GitHub</button>
+      <button class="btn ghost" id="revertBtn">放弃改动重载</button>
+      <span class="status" id="saveStatus"></span>
+    </div>
+    <div class="note" style="margin-top:8px">列头上方「全天」= 一键把当天 8:00–18:00 全部标为空闲 / 全部取消。</div>
+  </div>
+
+  <div class="card">
+    <div class="note">
+      📌 <b>首次使用</b>：先填 owner / repo / token 并「保存设置」，再点「从 GitHub 读取当前数据」，然后点格子编辑，最后「保存到 GitHub」。
+    </div>
+  </div>
+</div>
+
+<script>
+const HOURS = []; for(let h=8;h<18;h++) HOURS.push(h);
+const WD = ['一','二','三','四','五','六','日'];
+const CFG_KEY = 'cal_admin_cfg_v1';
+
+let DATA = { free:{}, updated:null };
+let cursor = startOfWeek(new Date());
+let dirty = false;
+
+const pad = n => String(n).padStart(2,'0');
+const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const $ = id => document.getElementById(id);
+function startOfWeek(d){ const x=new Date(d); const dow=(x.getDay()+6)%7; x.setDate(x.getDate()-dow); x.setHours(0,0,0,0); return x; }
+
+/* ---------- 配置 ---------- */
+function loadCfg(){
+  let c={}; try{ c=JSON.parse(localStorage.getItem(CFG_KEY)||'{}'); }catch(e){}
+  $('owner').value=c.owner||''; $('repo').value=c.repo||'';
+  $('branch').value=c.branch||'main'; $('path').value=c.path||'data.json';
+  $('token').value=c.token||'';
+}
+function getCfg(){
+  return { owner:$('owner').value.trim(), repo:$('repo').value.trim(),
+    branch:($('branch').value.trim()||'main'), path:($('path').value.trim()||'data.json'),
+    token:$('token').value.trim() };
+}
+$('saveCfg').onclick = ()=>{
+  localStorage.setItem(CFG_KEY, JSON.stringify(getCfg()));
+  $('cfgStatus').textContent='已保存到本机 ✓'; $('cfgStatus').className='status ok';
+  setTimeout(()=>{ $('cfgStatus').textContent=''; },2500);
+};
+
+/* ---------- Base64 ---------- */
+function b64utf8(str){ const bytes=new TextEncoder().encode(str); let bin=''; for(const b of bytes) bin+=String.fromCharCode(b); return btoa(bin); }
+function fromB64utf8(b64){ const bin=atob((b64||'').replace(/\s/g,'')); const bytes=Uint8Array.from(bin,ch=>ch.charCodeAt(0)); return new TextDecoder().decode(bytes); }
+
+/* ---------- GitHub ---------- */
+function apiUrl(cfg){ return `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURI(cfg.path)}`; }
+async function ghLoad(){
+  const cfg=getCfg();
+  if(!cfg.owner||!cfg.repo||!cfg.token) throw new Error('请先填写 owner / repo / token');
+  const r=await fetch(apiUrl(cfg)+`?ref=${encodeURIComponent(cfg.branch)}`,{headers:{Authorization:`Bearer ${cfg.token}`,Accept:'application/vnd.github+json'}});
+  if(r.status===404) return { free:{}, updated:null };
+  if(!r.ok) throw new Error(`读取失败 ${r.status}: ${(await r.text()).slice(0,120)}`);
+  const j=await r.json();
+  const obj=JSON.parse(fromB64utf8(j.content));
+  if(!obj.free) obj.free={};
+  return obj;
+}
+async function ghSave(){
+  const cfg=getCfg();
+  if(!cfg.owner||!cfg.repo||!cfg.token) throw new Error('请先填写 owner / repo / token');
+  let sha=null;
+  const g=await fetch(apiUrl(cfg)+`?ref=${encodeURIComponent(cfg.branch)}`,{headers:{Authorization:`Bearer ${cfg.token}`,Accept:'application/vnd.github+json'}});
+  if(g.ok) sha=(await g.json()).sha;
+  else if(g.status!==404) throw new Error(`获取文件信息失败 ${g.status}`);
+  DATA.updated=new Date().toISOString();
+  const body={ message:`update availability ${DATA.updated}`, content:b64utf8(JSON.stringify(DATA,null,2)), branch:cfg.branch };
+  if(sha) body.sha=sha;
+  const p=await fetch(apiUrl(cfg),{method:'PUT',headers:{Authorization:`Bearer ${cfg.token}`,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!p.ok) throw new Error(`保存失败 ${p.status}: ${(await p.text()).slice(0,160)}`);
+  return await p.json();
+}
+
+/* ---------- 渲染 ---------- */
+function render(){
+  const start=cursor;
+  const days=[...Array(7)].map((_,i)=>{ const d=new Date(start); d.setDate(start.getDate()+i); return d; });
+  const s=days[0], e=days[6], sameMonth=s.getMonth()===e.getMonth();
+  $('rangeLabel').textContent=`${s.getFullYear()}年${s.getMonth()+1}月${s.getDate()}日 – ${sameMonth?'':(e.getMonth()+1)+'月'}${e.getDate()}日`;
+
+  const grid=$('grid'); grid.innerHTML='';
+  const todayKey=dateKey(new Date());
+
+  grid.appendChild(Object.assign(document.createElement('div'),{className:'corner'}));
+  days.forEach(d=>{
+    const key=dateKey(d);
+    const el=document.createElement('div');
+    el.className='wd'+(key===todayKey?' today':'');
+    el.innerHTML=`周${WD[(d.getDay()+6)%7]}<b>${d.getDate()}</b>`;
+    const all=document.createElement('button');
+    const free=DATA.free?.[key]||[];
+    const allOn=free.length===HOURS.length;
+    all.className='allbtn'+(allOn?' on':'');
+    all.textContent=allOn?'取消全天':'全天';
+    all.onclick=()=>{
+      if((DATA.free[key]||[]).length===HOURS.length) DATA.free[key]=[];
+      else DATA.free[key]=HOURS.map(h=>String(h));
+      markDirty(); render();
+    };
+    el.appendChild(all);
+    grid.appendChild(el);
+  });
+
+  HOURS.forEach(h=>{
+    const t=document.createElement('div'); t.className='time'; t.textContent=`${h}:00`; grid.appendChild(t);
+    days.forEach(d=>{
+      const key=dateKey(d);
+      if(!DATA.free[key]) DATA.free[key]=[];
+      const free=DATA.free[key];
+      const cell=document.createElement('div');
+      const isFree=free.includes(String(h));
+      cell.className='slot'+(isFree?' free':'');
+      cell.title=`${key} ${h}:00–${h+1}:00`;
+      cell.onclick=()=>{
+        const i=free.indexOf(String(h));
+        if(i>=0) free.splice(i,1); else free.push(String(h));
+        markDirty(); render();
+      };
+      grid.appendChild(cell);
+    });
+  });
+}
+function markDirty(){ dirty=true; $('saveBtn').disabled=false; $('saveStatus').textContent='有未保存的改动'; $('saveStatus').className='status err'; }
+
+/* ---------- 动作 ---------- */
+$('loadBtn').onclick=async()=>{
+  $('cfgStatus').textContent='读取中…'; $('cfgStatus').className='status';
+  try{ DATA=await ghLoad(); if(!DATA.free)DATA.free={}; dirty=false; $('saveBtn').disabled=true; $('saveStatus').textContent=''; render();
+    $('cfgStatus').textContent='已读取 ✓'; $('cfgStatus').className='status ok';
+  }catch(e){ $('cfgStatus').textContent=e.message; $('cfgStatus').className='status err'; }
+};
+$('saveBtn').onclick=async()=>{
+  Object.keys(DATA.free).forEach(k=>{ if(!DATA.free[k]||!DATA.free[k].length) delete DATA.free[k]; });
+  $('saveBtn').disabled=true; $('saveStatus').textContent='保存中…'; $('saveStatus').className='status';
+  try{ await ghSave(); dirty=false; $('saveStatus').textContent='已保存到 GitHub ✓ 公开页约 1 分钟内更新'; $('saveStatus').className='status ok'; }
+  catch(e){ $('saveBtn').disabled=false; $('saveStatus').textContent=e.message; $('saveStatus').className='status err'; }
+};
+$('revertBtn').onclick=async()=>{
+  if(dirty && !confirm('放弃未保存的改动？')) return;
+  try{ DATA=await ghLoad(); }catch(e){ return; }
+  if(!DATA.free)DATA.free={}; dirty=false; $('saveBtn').disabled=true; $('saveStatus').textContent=''; render();
+};
+$('prev').onclick=()=>{ cursor.setDate(cursor.getDate()-7); render(); };
+$('next').onclick=()=>{ cursor.setDate(cursor.getDate()+7); render(); };
+$('today').onclick=()=>{ cursor=startOfWeek(new Date()); render(); };
+
+/* ---------- 初始化 ---------- */
+loadCfg(); render();
+(function autoLoad(){ const c=getCfg(); if(c.owner&&c.repo&&c.token){ ghLoad().then(d=>{ DATA=d; if(!DATA.free)DATA.free={}; render(); }).catch(()=>{}); } })();
+</script>
+</body>
+</html>
